@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response, Response
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 import os
 import time
@@ -6,7 +6,16 @@ import time
 app = Flask(__name__)
 CORS(app)
 
+from .name import name_bp
+from .number import number_bp
+from .upload import upload_bp
 
+app.register_blueprint(name_bp)
+app.register_blueprint(number_bp)
+app.register_blueprint(upload_bp)
+
+
+# 切片上传
 @app.route("/upload", methods=["POST"])
 def upload_file():
     # 获取文件名和开始字节
@@ -44,6 +53,7 @@ def check_chunk():
         request.args.get("fileHash"),
     )
     print("chunk_path**", chunk_path)
+    print("chunkIndex**", os.listdir(chunk_path))
     # request.args.get("chunkIndex") + ".part",
 
     chunk_indices = []
@@ -86,24 +96,6 @@ def merge_chunks():
     #     os.remove(chunk_path)
 
     return jsonify({"message": "上传成功！"}), 200
-
-
-@app.route("/test/getName", methods=["GET"])
-def get_name():
-    time.sleep(2)
-    # response = make_response(jsonify({"name": "John Doe"}), 200)
-    response = Response(
-        response='{"name": "Jonn Doe"}', status=200, mimetype="application/json"
-    )
-    return response
-
-
-@app.route("/test/getNumber", methods=["GET"])
-def get_number():
-    time.sleep(3)
-    response = make_response(jsonify({"number": 999}), 200)
-    response.headers.set("X-Custom-Header", "Test")
-    return response
 
 
 @app.route("/test/getPieData", methods=["GET"])
@@ -165,7 +157,48 @@ def events():
     return response
 
 
-if __name__ == "__main__":
-    if not os.path.exists("./upload"):
-        os.makedirs("./upload")
-    app.run(port=3000, debug=True)
+@app.route("/getNodes", methods=["GET"])
+def get_nodes():
+    node = request.args.get("node")
+    time.sleep(1)
+    if node == "zhejiang":
+        nodes = [
+            {
+                "value": "hangzhou",
+                "label": "Hangzhou",
+                "isLeaf": True,
+            },
+            {
+                "value": "shaoxing",
+                "label": "Shaoxing",
+                "isLeaf": True,
+            },
+        ]
+    elif node == "jiangsu":
+        nodes = [
+            {
+                "value": "nanjing",
+                "label": "Nanjing",
+                "isLeaf": True,
+            },
+            {
+                "value": "xuzhou",
+                "label": "Xuzhou",
+                "isLeaf": True,
+            },
+        ]
+    else:
+        nodes = [
+            {
+                "value": "zhejiang",
+                "label": "Zhejiang",
+                "isLeaf": False,
+            },
+            {
+                "value": "jiangsu",
+                "label": "Jiangsu",
+                "isLeaf": False,
+            },
+        ]
+    response = make_response(jsonify({"nodes": nodes}), 200)
+    return response
