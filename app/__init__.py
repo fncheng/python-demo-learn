@@ -48,29 +48,38 @@ def upload_file():
 
 @app.route("/upload/check", methods=["GET"])
 def check_chunk():
+    print("***args***", request.args.get("fileHash"))
     chunk_path = os.path.join(
         "./upload/",
         request.args.get("fileHash"),
     )
-    print("chunk_path**", chunk_path)
-    print("chunkIndex**", os.listdir(chunk_path))
-    # request.args.get("chunkIndex") + ".part",
+    output_dir = os.path.join("./merged_files/", request.args.get("fileHash"))
+    if os.path.exists(output_dir):
+        return jsonify({"message": "File already exists"}), 200
+    else:
+        print("chunk_path**", chunk_path)
+        if not os.path.exists(chunk_path):
+            os.mkdir(chunk_path)
+        chunk_indices = []
 
-    chunk_indices = []
-    for filename in os.listdir(chunk_path):
-        try:
-            index = int(filename.split(".")[0])
-            print("index***", index)
-            chunk_indices.append(index)
-        except ValueError:
-            pass  # 忽略无法转换为整数的文件名
-    print("*****", chunk_indices)
-    return sorted(chunk_indices)
+        for filename in os.listdir(chunk_path):
+            try:
+                index = int(filename.split(".")[0])
+                print("index***", index)
+                chunk_indices.append(index)
+            except ValueError:
+                # return jsonify({"error": "Invalid chunk index"}), 400
+                pass  # 忽略无法转换为整数的文件名
+            print("*****", chunk_indices)
+        response = make_response(sorted(chunk_indices)), 200
+        return response
 
 
+# 合并分片
 @app.route("/upload/merge", methods=["POST"])
 def merge_chunks():
     file_hash = request.json["fileHash"]
+    file_name = request.json["fileName"]
     output_dir = "./merged_files/"
     input_dir = "./upload/"
     # 创建输出目录
@@ -84,7 +93,7 @@ def merge_chunks():
         key=lambda x: int(x.split(".")[0]),
     )
     # 合并分片文件
-    with open(os.path.join(output_dir, file_hash), "wb") as outfile:
+    with open(os.path.join(output_dir, file_name), "wb") as outfile:
         for chunk_file in chunk_files:
             chunk_path = os.path.join(chunk_dir, chunk_file)
             with open(chunk_path, "rb") as chunk_f:
